@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Geopolitical Risk Scorer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      color: #1a2f4e;
+    }
+
+    .header {
+      background: #1a2f4e;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-title { color: #fff; font-size: 18px; font-weight: 500; }
+    .header-sub { color: #8fa8c8; font-size: 12px; margin-top: 3px; }
+    .header-right { font-size: 11px; color: #8fa8c8; text-align: right; }
+    .header-right span { display: block; }
+
+    .search-bar {
+      background: #fff;
+      border-bottom: 1px solid #d0d8e4;
+      padding: 16px 32px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .search-input {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: 1px solid #c5d0dd;
+      background: #f8fafc;
+      font-size: 14px;
+      color: #1a2f4e;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .search-input:focus { border-color: #1a2f4e; background: #fff; }
+    .search-btn {
+      padding: 10px 24px;
+      background: #1a2f4e;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .search-btn:hover { background: #243d5e; }
+    .search-btn:disabled { background: #8fa8c8; cursor: not-allowed; }
+
+    .main { max-width: 1100px; margin: 0 auto; padding: 24px 32px; }
+
+    .loading {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 0;
+      gap: 16px;
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid #d0d8e4;
+      border-top-color: #1a2f4e;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 14px; color: #7a8fa6; }
+
+    .error {
+      display: none;
+      background: #fde8e7;
+      border: 1px solid #f0b8b6;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      color: #a32d2d;
+      font-size: 14px;
+    }
+
+    .results { display: none; }
+
+    .country-header {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #d0d8e4;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .country-left { display: flex; align-items: center; gap: 14px; }
+    .country-badge {
+      width: 50px; height: 50px;
+      border-radius: 10px;
+      background: #1a2f4e;
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 500; letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+    .country-name { font-size: 22px; font-weight: 500; color: #1a2f4e; }
+    .country-meta { font-size: 12px; color: #7a8fa6; margin-top: 4px; }
+    .overall-score { text-align: right; }
+    .overall-label {
+      font-size: 11px; color: #7a8fa6;
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
+    }
+    .overall-num { font-size: 40px; font-weight: 500; line-height: 1; }
+    .overall-desc { font-size: 13px; font-weight: 500; margin-top: 4px; }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .score-card {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #d0d8e4;
+      padding: 16px 14px;
+    }
+    .score-label { font-size: 11px; color: #7a8fa6; margin-bottom: 10px; line-height: 1.4; min-height: 32px; }
+    .score-num { font-size: 32px; font-weight: 500; margin-bottom: 8px; }
+    .score-bar-bg { background: #eef2f7; border-radius: 4px; height: 6px; }
+    .score-bar { height: 6px; border-radius: 4px; transition: width 0.8s ease; }
+    .score-change { font-size: 11px; margin-top: 8px; }
+    .score-explanation { font-size: 11px; color: #7a8fa6; margin-top: 6px; line-height: 1.4; }
+
+    .red { color: #c8382a; }
+    .amber { color: #c07a0a; }
+    .green { color: #2a7d4f; }
+    .bar-red { background: #c8382a; }
+    .bar-amber { background: #c07a0a; }
+    .bar-green { background: #2a7d4f; }
+
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .panel {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #d0d8e4;
+      padding: 20px 24px;
+    }
+    .panel-title {
+      font-size: 11px; font-weight: 500; color: #1a2f4e;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 14px; padding-bottom: 10px;
+      border-bottom: 1px solid #eef2f7;
+    }
+    .summary-text { font-size: 13px; color: #4a5568; line-height: 1.8; }
+
+    .news-item {
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f4f8;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .news-item:last-child { border-bottom: none; padding-bottom: 0; }
+    .news-tag {
+      font-size: 10px; padding: 3px 8px;
+      border-radius: 4px; font-weight: 500;
+      white-space: nowrap; margin-top: 1px; flex-shrink: 0;
+    }
+    .tag-red { background: #fde8e7; color: #a32d2d; }
+    .tag-amber { background: #fef3e0; color: #854f0b; }
+    .tag-blue { background: #e6f1fb; color: #185fa5; }
+    .tag-green { background: #eaf3de; color: #3b6d11; }
+    .news-text { font-size: 12px; color: #4a5568; line-height: 1.5; }
+    .news-source { font-size: 11px; color: #9aabbd; margin-top: 3px; }
+
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: #9aabbd;
+      padding: 20px 0 8px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 80px 0;
+      color: #7a8fa6;
+    }
+    .empty-state h2 { font-size: 18px; font-weight: 500; margin-bottom: 8px; color: #1a2f4e; }
+    .empty-state p { font-size: 14px; line-height: 1.6; }
+    .example-countries {
+      display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 16px;
+    }
+    .example-btn {
+      padding: 6px 14px;
+      border: 1px solid #c5d0dd;
+      border-radius: 20px;
+      background: #fff;
+      font-size: 13px;
+      color: #1a2f4e;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .example-btn:hover { background: #1a2f4e; color: #fff; border-color: #1a2f4e; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <div class="header-title">Geopolitical Risk Scorer</div>
+      <div class="header-sub">Powered by NewsAPI + Claude AI · Live country risk analysis</div>
+    </div>
+    <div class="header-right">
+      <span id="lastUpdated">—</span>
+      <span style="margin-top:2px;">Real-time · Not financial advice</span>
+    </div>
+  </div>
+
+  <div class="search-bar">
+    <input
+      class="search-input"
+      id="countryInput"
+      type="text"
+      placeholder="Enter any country name... (e.g. Turkey, Brazil, Nigeria, Vietnam)"
+      autocomplete="off"
+    />
+    <button class="search-btn" id="analyzeBtn" onclick="analyzeCountry()">
+      Analyze Risk
+    </button>
+  </div>
+
+  <div class="main">
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loadingText">Fetching live news...</div>
+    </div>
+
+    <div class="error" id="error">
+      <strong>Error: </strong><span id="errorMessage"></span>
+    </div>
+
+    <div class="results" id="results">
+      <div class="country-header">
+        <div class="country-left">
+          <div class="country-badge" id="badge">--</div>
+          <div>
+            <div class="country-name" id="countryName">—</div>
+            <div class="country-meta" id="countryMeta">—</div>
+          </div>
+        </div>
+        <div class="overall-score">
+          <div class="overall-label">Overall Risk Score</div>
+          <div class="overall-num" id="overallScore">—</div>
+          <div class="overall-desc" id="overallDesc">—</div>
+        </div>
+      </div>
+
+      <div class="score-grid">
+        <div class="score-card">
+          <div class="score-label">Political stability</div>
+          <div class="score-num" id="s1">—</div>
+          <div class="score-bar-bg"><div class="score-bar" id="b1" style="width:0%"></div></div>
+          <div class="score-change" id="c1">—</div>
+          <div class="score-explanation" id="e1">—</div>
+        </div>
+        <div class="score-card">
+          <div class="score-label">Sanctions risk</div>
+          <div class="score-num" id="s2">—</div>
+          <div class="score-bar-bg"><div class="score-bar" id="b2" style="width:0%"></div></div>
+          <div class="score-change" id="c2">—</div>
+          <div class="score-explanation" id="e2">—</div>
+        </div>
+        <div class="score-card">
+          <div class="score-label">Currency risk</div>
+          <div class="score-num" id="s3">—</div>
+          <div class="score-bar-bg"><div class="score-bar" id="b3" style="width:0%"></div></div>
+          <div class="score-change" id="c3">—</div>
+          <div class="score-explanation" id="e3">—</div>
+        </div>
+        <div class="score-card">
+          <div class="score-label">Debt sustainability</div>
+          <div class="score-num" id="s4">—</div>
+          <div class="score-bar-bg"><div class="score-bar" id="b4" style="width:0%"></div></div>
+          <div class="score-change" id="c4">—</div>
+          <div class="score-explanation" id="e4">—</div>
+        </div>
+        <div class="score-card">
+          <div class="score-label">Social unrest</div>
+          <div class="score-num" id="s5">—</div>
+          <div class="score-bar-bg"><div class="score-bar" id="b5" style="width:0%"></div></div>
+          <div class="score-change" id="c5">—</div>
+          <div class="score-explanation" id="e5">—</div>
+        </div>
+      </div>
+
+      <div class="bottom-grid">
+        <div class="panel">
+          <div class="panel-title">AI Analysis Summary</div>
+          <p class="summary-text" id="summary">—</p>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Live News Sources</div>
+          <div id="newsItems"></div>
+        </div>
+      </div>
+
+      <div class="footer">
+        Scores are AI-generated from live news headlines via NewsAPI and analyzed by Claude.
+        For informational purposes only. Not financial advice.
+      </div>
+    </div>
+
+    <div class="empty-state" id="emptyState">
+      <h2>Score any country's geopolitical risk</h2>
+      <p>Enter a country name above to get a live AI-powered risk assessment<br>
+      across 5 dimensions, grounded in today's news.</p>
+      <div class="example-countries">
+        <button class="example-btn" onclick="quickSearch('Turkey')">Turkey</button>
+        <button class="example-btn" onclick="quickSearch('Brazil')">Brazil</button>
+        <button class="example-btn" onclick="quickSearch('Egypt')">Egypt</button>
+        <button class="example-btn" onclick="quickSearch('Nigeria')">Nigeria</button>
+        <button class="example-btn" onclick="quickSearch('Vietnam')">Vietnam</button>
+        <button class="example-btn" onclick="quickSearch('Argentina')">Argentina</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <script>
+    function quickSearch(country) {
+      document.getElementById("countryInput").value = country;
+      analyzeCountry();
+    }
+
+    function analyzeCountry() {
+      document.getElementById("emptyState").style.display = "none";
+      document.getElementById("analyzeBtn").disabled = true;
+      document.getElementById("analyzeBtn").textContent = "Analyzing...";
+      const btn = document.getElementById("analyzeBtn");
+
+      const original = window.analyzeCountry;
+      window.analyzeCountry_internal = async function() {
+        await original_analyze();
+        btn.disabled = false;
+        btn.textContent = "Analyze Risk";
+      };
+    }
+
+    const original_analyze = analyzeCountry;
+    window.analyzeCountry = async function() {
+      document.getElementById("emptyState").style.display = "none";
+      document.getElementById("analyzeBtn").disabled = true;
+      document.getElementById("analyzeBtn").textContent = "Analyzing...";
+      await original_analyze();
+      document.getElementById("analyzeBtn").disabled = false;
+      document.getElementById("analyzeBtn").textContent = "Analyze Risk";
+    };
+  </script>
+
+</body>
+</html>

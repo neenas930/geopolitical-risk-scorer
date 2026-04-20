@@ -1,5 +1,5 @@
 const CLAUDE_KEY = "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";
-const NEWS_KEY = "8d8db3f83b3343a1aa36b17cb296a4a4";
+const NEWS_KEY = "4e28a451fc5df0c25ae2154412cb7c71";
 
 const DIMENSION_INFO = {
   s1: {
@@ -25,15 +25,20 @@ const DIMENSION_INFO = {
 };
 
 const NewsAPI = {
-  async fetchHeadlines(country) {
-    const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(country)}+economy+politics+currency&sortBy=publishedAt&pageSize=20&language=en&apiKey=${NEWS_KEY}`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("NewsAPI request failed");
-    const data = await response.json();
-    if (data.status !== "ok") throw new Error(data.message || "NewsAPI error");
-    return data.articles;
-  },
-};
+    async fetchHeadlines(country) {
+      const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(country)}+economy+politics+currency&lang=en&max=10&apikey=${NEWS_KEY}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("News request failed");
+      const data = await response.json();
+      if (!data.articles) throw new Error(data.errors?.[0] || "News API error");
+      return data.articles.map(a => ({
+        title: a.title,
+        source: { name: a.source.name },
+        publishedAt: a.publishedAt,
+        url: a.url
+      }));
+    },
+  };
 
 const ClaudeAPI = {
   async analyzeRisk(country, articles) {

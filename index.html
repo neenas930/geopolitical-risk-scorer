@@ -134,8 +134,32 @@
       border-radius: 12px;
       border: 1px solid #d0d8e4;
       padding: 16px 14px;
+      cursor: default;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      position: relative;
     }
-    .score-label { font-size: 11px; color: #7a8fa6; margin-bottom: 10px; line-height: 1.4; min-height: 32px; }
+    .score-card:hover {
+      border-color: #1a2f4e;
+      box-shadow: 0 2px 8px rgba(26, 47, 78, 0.1);
+    }
+    .score-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .score-label { font-size: 11px; color: #7a8fa6; line-height: 1.4; }
+    .info-icon {
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: #eef2f7;
+      color: #7a8fa6;
+      font-size: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-style: normal;
+      font-weight: 500;
+    }
     .score-num { font-size: 32px; font-weight: 500; margin-bottom: 8px; }
     .score-bar-bg { background: #eef2f7; border-radius: 4px; height: 6px; }
     .score-bar { height: 6px; border-radius: 4px; transition: width 0.8s ease; }
@@ -214,6 +238,37 @@
       transition: all 0.2s;
     }
     .example-btn:hover { background: #1a2f4e; color: #fff; border-color: #1a2f4e; }
+
+    .tooltip {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      background: #1a2f4e;
+      color: #fff;
+      padding: 14px 16px;
+      border-radius: 10px;
+      max-width: 280px;
+      pointer-events: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    }
+    .tooltip-title {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: #fff;
+    }
+    .tooltip-body {
+      font-size: 12px;
+      line-height: 1.6;
+      color: #c8d8e8;
+    }
+    .tooltip-hint {
+      font-size: 10px;
+      color: #8fa8c8;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
   </style>
 </head>
 <body>
@@ -237,7 +292,7 @@
       placeholder="Enter any country name... (e.g. Turkey, Brazil, Nigeria, Vietnam)"
       autocomplete="off"
     />
-    <button class="search-btn" id="analyzeBtn" onclick="analyzeCountry()">
+    <button class="search-btn" id="analyzeBtn" onclick="runAnalysis()">
       Analyze Risk
     </button>
   </div>
@@ -270,36 +325,51 @@
       </div>
 
       <div class="score-grid">
-        <div class="score-card">
-          <div class="score-label">Political stability</div>
+        <div class="score-card" id="card-s1">
+          <div class="score-card-header">
+            <div class="score-label">Political stability</div>
+            <i class="info-icon">i</i>
+          </div>
           <div class="score-num" id="s1">—</div>
           <div class="score-bar-bg"><div class="score-bar" id="b1" style="width:0%"></div></div>
           <div class="score-change" id="c1">—</div>
           <div class="score-explanation" id="e1">—</div>
         </div>
-        <div class="score-card">
-          <div class="score-label">Sanctions risk</div>
+        <div class="score-card" id="card-s2">
+          <div class="score-card-header">
+            <div class="score-label">Sanctions risk</div>
+            <i class="info-icon">i</i>
+          </div>
           <div class="score-num" id="s2">—</div>
           <div class="score-bar-bg"><div class="score-bar" id="b2" style="width:0%"></div></div>
           <div class="score-change" id="c2">—</div>
           <div class="score-explanation" id="e2">—</div>
         </div>
-        <div class="score-card">
-          <div class="score-label">Currency risk</div>
+        <div class="score-card" id="card-s3">
+          <div class="score-card-header">
+            <div class="score-label">Currency risk</div>
+            <i class="info-icon">i</i>
+          </div>
           <div class="score-num" id="s3">—</div>
           <div class="score-bar-bg"><div class="score-bar" id="b3" style="width:0%"></div></div>
           <div class="score-change" id="c3">—</div>
           <div class="score-explanation" id="e3">—</div>
         </div>
-        <div class="score-card">
-          <div class="score-label">Debt sustainability</div>
+        <div class="score-card" id="card-s4">
+          <div class="score-card-header">
+            <div class="score-label">Debt sustainability</div>
+            <i class="info-icon">i</i>
+          </div>
           <div class="score-num" id="s4">—</div>
           <div class="score-bar-bg"><div class="score-bar" id="b4" style="width:0%"></div></div>
           <div class="score-change" id="c4">—</div>
           <div class="score-explanation" id="e4">—</div>
         </div>
-        <div class="score-card">
-          <div class="score-label">Social unrest</div>
+        <div class="score-card" id="card-s5">
+          <div class="score-card-header">
+            <div class="score-label">Social unrest</div>
+            <i class="info-icon">i</i>
+          </div>
           <div class="score-num" id="s5">—</div>
           <div class="score-bar-bg"><div class="score-bar" id="b5" style="width:0%"></div></div>
           <div class="score-change" id="c5">—</div>
@@ -340,37 +410,29 @@
 
   </div>
 
+  <div class="tooltip" id="tooltip">
+    <div class="tooltip-title"></div>
+    <div class="tooltip-body"></div>
+    <div class="tooltip-hint">Hover to learn how this metric is scored</div>
+  </div>
+
   <script src="config.js"></script>
   <script src="app.js"></script>
   <script>
     function quickSearch(country) {
       document.getElementById("countryInput").value = country;
-      analyzeCountry();
+      runAnalysis();
     }
 
-    function analyzeCountry() {
-      document.getElementById("emptyState").style.display = "none";
-      document.getElementById("analyzeBtn").disabled = true;
-      document.getElementById("analyzeBtn").textContent = "Analyzing...";
+    async function runAnalysis() {
       const btn = document.getElementById("analyzeBtn");
-
-      const original = window.analyzeCountry;
-      window.analyzeCountry_internal = async function() {
-        await original_analyze();
-        btn.disabled = false;
-        btn.textContent = "Analyze Risk";
-      };
-    }
-
-    const original_analyze = analyzeCountry;
-    window.analyzeCountry = async function() {
       document.getElementById("emptyState").style.display = "none";
-      document.getElementById("analyzeBtn").disabled = true;
-      document.getElementById("analyzeBtn").textContent = "Analyzing...";
-      await original_analyze();
-      document.getElementById("analyzeBtn").disabled = false;
-      document.getElementById("analyzeBtn").textContent = "Analyze Risk";
-    };
+      btn.disabled = true;
+      btn.textContent = "Analyzing...";
+      await analyzeCountry();
+      btn.disabled = false;
+      btn.textContent = "Analyze Risk";
+    }
   </script>
 
 </body>

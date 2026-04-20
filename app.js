@@ -283,10 +283,10 @@ async function analyzeCountry() {
 
   UI.showLoading(country);
 
-  const CLAUDE_KEY = await fetchClaudeKey();
-  const NEWS_KEY = await fetchNewsKey();
-
   try {
+    const CLAUDE_KEY = await fetchClaudeKey();
+    const NEWS_KEY = await fetchNewsKey();
+
     const articles = await NewsAPI.fetchHeadlines(country, NEWS_KEY);
     if (!articles || articles.length === 0) {
       throw new Error(`No news found for "${country}". Try a different country name.`);

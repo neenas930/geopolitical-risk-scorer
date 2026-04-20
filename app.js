@@ -1,5 +1,14 @@
-const CLAUDE_KEY = "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";
-const NEWS_KEY = "4e28a451fc5df0c25ae2154412cb7c71";
+const BACKEND_URL = "https://geopolitical-risk-scorer-backend.onrender.com";
+
+async function fetchClaudeKey() { 
+  const res = await fetch(`${BACKEND_URL}/claude-key`);
+  return await res.text();
+}
+
+async function fetchNewsKey() {
+  const res = await fetch(`${BACKEND_URL}/news-key`);
+  return await res.text(); 
+}
 
 const DIMENSION_INFO = {
   s1: {
@@ -274,12 +283,15 @@ async function analyzeCountry() {
 
   UI.showLoading(country);
 
+  const CLAUDE_KEY = await fetchClaudeKey();
+  const NEWS_KEY = await fetchNewsKey();
+
   try {
-    const articles = await NewsAPI.fetchHeadlines(country);
+    const articles = await NewsAPI.fetchHeadlines(country, NEWS_KEY);
     if (!articles || articles.length === 0) {
       throw new Error(`No news found for "${country}". Try a different country name.`);
     }
-    const scores = await ClaudeAPI.analyzeRisk(country, articles);
+    const scores = await ClaudeAPI.analyzeRisk(country, articles, CLAUDE_KEY);
     UI.renderResults(country, scores, articles);
   } catch (err) {
     UI.showError(err.message);

@@ -34,12 +34,12 @@ const DIMENSION_INFO = {
 };
 
 const NewsAPI = {
-  async fetchHeadlines(country, newsKey) {
-    const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(country)}+economy+politics+currency&lang=en&max=10&apikey=${newsKey}`;
+  async fetchHeadlines(country) {
+    const url = `${BACKEND_URL}/news?country=${encodeURIComponent(country)}`;
     const response = await fetch(url);
     if (!response.ok) throw new Error("News request failed");
     const data = await response.json();
-    if (!data.articles) throw new Error(data.errors?.[0] || "News API error");
+    if (!data.articles) throw new Error(data.error || "News API error");
     return data.articles.map(a => ({
       title: a.title,
       source: { name: a.source.name },
@@ -285,9 +285,7 @@ async function analyzeCountry() {
 
   try {
     const claudeKey = await fetchClaudeKey();
-    const newsKey = await fetchNewsKey();
-
-    const articles = await NewsAPI.fetchHeadlines(country, newsKey);
+    const articles = await NewsAPI.fetchHeadlines(country);
     if (!articles || articles.length === 0) {
       throw new Error(`No news found for "${country}". Try a different country name.`);
     }

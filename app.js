@@ -94,7 +94,8 @@ Rules:
 
     if (!response.ok) throw new Error("Claude API request failed");
     const data = await response.json();
-    const text = data.content[0].text.trim();
+    let text = data.content[0].text.trim();
+    text = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     return JSON.parse(text);
   },
 };

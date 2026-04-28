@@ -34,23 +34,23 @@ const DIMENSION_INFO = {
 };
 
 const NewsAPI = {
-    async fetchHeadlines(country) {
-      const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(country)}+economy+politics+currency&lang=en&max=10&apikey=${NEWS_KEY}`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("News request failed");
-      const data = await response.json();
-      if (!data.articles) throw new Error(data.errors?.[0] || "News API error");
-      return data.articles.map(a => ({
-        title: a.title,
-        source: { name: a.source.name },
-        publishedAt: a.publishedAt,
-        url: a.url
-      }));
-    },
-  };
+  async fetchHeadlines(country, newsKey) {
+    const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(country)}+economy+politics+currency&lang=en&max=10&apikey=${newsKey}`;
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("News request failed");
+    const data = await response.json();
+    if (!data.articles) throw new Error(data.errors?.[0] || "News API error");
+    return data.articles.map(a => ({
+      title: a.title,
+      source: { name: a.source.name },
+      publishedAt: a.publishedAt,
+      url: a.url
+    }));
+  },
+};
 
 const ClaudeAPI = {
-  async analyzeRisk(country, articles) {
+  async analyzeRisk(country, articles, claudeKey) {
     const headlines = articles
       .map((a, i) => `${i + 1}. ${a.title} (${a.source.name})`)
       .join("\n");
@@ -81,7 +81,7 @@ Rules:
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": CLAUDE_KEY,
+        "x-api-key": claudeKey,
         "anthropic-version": "2023-06-01",
         "anthropic-dangerous-direct-browser-access": "true",
       },
@@ -284,14 +284,14 @@ async function analyzeCountry() {
   UI.showLoading(country);
 
   try {
-    const CLAUDE_KEY = await fetchClaudeKey();
-    const NEWS_KEY = await fetchNewsKey();
+    const claudeKey = await fetchClaudeKey();
+    const newsKey = await fetchNewsKey();
 
-    const articles = await NewsAPI.fetchHeadlines(country, NEWS_KEY);
+    const articles = await NewsAPI.fetchHeadlines(country, newsKey);
     if (!articles || articles.length === 0) {
       throw new Error(`No news found for "${country}". Try a different country name.`);
     }
-    const scores = await ClaudeAPI.analyzeRisk(country, articles, CLAUDE_KEY);
+    const scores = await ClaudeAPI.analyzeRisk(country, articles, claudeKey);
     UI.renderResults(country, scores, articles);
   } catch (err) {
     UI.showError(err.message);
